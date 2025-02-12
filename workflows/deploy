@@ -1,0 +1,50 @@
+name: Deploy Frontend to S3
+
+on:
+  push:
+    branches:
+      - main  # Se ejecuta cuando hay cambios en la rama "main"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    # 1. Checkout del código
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    # 2. Instalar Node.js para validaciones
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '16'
+
+    - name: Install linters
+      run: |
+        npm install stylelint eslint --save-dev
+
+    # 3. Validación del código
+    - name: Lint HTML, CSS, and JS
+      run: |
+        npx stylelint "**/*.css"
+        npx eslint "**/*.js"
+
+    # 4. Instalar AWS CLI
+    - name: Install AWS CLI
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y awscli
+
+    # 5. Configurar credenciales de AWS
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_REGION }}
+
+    # 6. Subir los archivos al bucket S3
+    - name: Deploy to S3
+      run: |
+        aws s3 sync ./frontend s3://fuzzy-eureka-frontend --acl public-read
